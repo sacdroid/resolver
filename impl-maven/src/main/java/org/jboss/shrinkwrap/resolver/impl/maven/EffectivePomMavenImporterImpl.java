@@ -16,17 +16,12 @@
  */
 package org.jboss.shrinkwrap.resolver.impl.maven;
 
-import java.util.Stack;
-
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.Assignable;
-import org.jboss.shrinkwrap.resolver.api.maven.EffectivePomMavenDependencyResolver;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenDependency;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenImporter;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenImporter.EffectivePomMavenImporter;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolutionFilter;
 import org.jboss.shrinkwrap.resolver.api.maven.filter.ScopeFilter;
-import org.sonatype.aether.artifact.ArtifactTypeRegistry;
 
 /**
  * Implementation of EffectivePomMavenImporter. This class is hidden to be instantiated by user, and it contains all the
@@ -80,25 +75,9 @@ class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenIm
 
     @Override
     public EffectivePomMavenImporter importAnyDependencies(MavenResolutionFilter filter) {
-
-        ArtifactTypeRegistry stereotypes = effectivePomResolver.getDelegate().getSystem()
-                .getArtifactTypeRegistry(effectivePomResolver.getDelegate().getSession());
-
-        // store all dependency information to be able to retrieve versions later
-        Stack<MavenDependency> pomDefinedDependencies = MavenConverter.fromDependencies(effectivePomResolver.getModel()
-                .getDependencies(), stereotypes);
-
-        // configure filter
-        MavenResolutionFilter configuredFilter = filter.configure(pomDefinedDependencies);
-
-        for (MavenDependency candidate : pomDefinedDependencies) {
-            if (configuredFilter.accept(candidate)) {
-                effectivePomResolver.getDelegate().getDependencies().push(candidate);
-            }
-        }
-
-        this.archive = mpt.enrichArchiveWithTestArtifacts(archive, (EffectivePomMavenDependencyResolver) effectivePomResolver,
-                filter);
+        this.effectivePomResolver = (EffectivePomMavenDependencyResolverInternal) effectivePomResolver
+                .importAnyDependencies(filter);
+        this.archive = mpt.enrichArchiveWithTestArtifacts(archive, effectivePomResolver, filter);
         return this;
     }
 
