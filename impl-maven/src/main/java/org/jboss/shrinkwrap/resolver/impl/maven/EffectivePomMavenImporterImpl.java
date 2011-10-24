@@ -18,6 +18,7 @@ package org.jboss.shrinkwrap.resolver.impl.maven;
 
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.Assignable;
+import org.jboss.shrinkwrap.resolver.api.maven.EffectivePomMavenDependencyResolver;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenImporter;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenImporter.EffectivePomMavenImporter;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolutionFilter;
@@ -30,11 +31,11 @@ import org.jboss.shrinkwrap.resolver.api.maven.filter.ScopeFilter;
  * @author <a href="kpiwko@redhat.com>Karel Piwko</a>
  * @see MavenPackagingType
  */
-class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenImporter {
+class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenImporter, MavenEnvironmentRetrieval {
 
     private Archive<?> archive;
 
-    private EffectivePomMavenDependencyResolverInternal effectivePomResolver;
+    private EffectivePomMavenDependencyResolver effectivePomResolver;
 
     private final MavenPackagingType mpt;
 
@@ -44,11 +45,11 @@ class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenIm
      * @param archive The archive to be modified
      * @param effectivePomResolver Effective pom in resolved state
      */
-    public EffectivePomMavenImporterImpl(Archive<?> archive, EffectivePomMavenDependencyResolverInternal effectivePomResolver) {
+    public EffectivePomMavenImporterImpl(Archive<?> archive, EffectivePomMavenDependencyResolver effectivePomResolver) {
 
         this.archive = archive;
         this.effectivePomResolver = effectivePomResolver;
-        this.mpt = MavenPackagingType.from(effectivePomResolver.getModel().getPackaging());
+        this.mpt = MavenPackagingType.from(getMavenEnvironment().getModel().getPackaging());
     }
 
     @Override
@@ -58,13 +59,13 @@ class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenIm
 
     @Override
     public EffectivePomMavenImporter importBuildOutput() {
-        this.archive = mpt.enrichArchiveWithBuildOutput(archive, effectivePomResolver.getModel());
+        this.archive = mpt.enrichArchiveWithBuildOutput(archive, getMavenEnvironment().getModel());
         return this;
     }
 
     @Override
     public EffectivePomMavenImporter importTestBuildOutput() {
-        this.archive = mpt.enrichArchiveWithTestOutput(archive, effectivePomResolver.getModel());
+        this.archive = mpt.enrichArchiveWithTestOutput(archive, getMavenEnvironment().getModel());
         return this;
     }
 
@@ -75,10 +76,18 @@ class EffectivePomMavenImporterImpl implements MavenImporter.EffectivePomMavenIm
 
     @Override
     public EffectivePomMavenImporter importAnyDependencies(MavenResolutionFilter filter) {
-        this.effectivePomResolver = (EffectivePomMavenDependencyResolverInternal) effectivePomResolver
-                .importAnyDependencies(filter);
+        this.effectivePomResolver = effectivePomResolver.importAnyDependencies(filter);
         this.archive = mpt.enrichArchiveWithTestArtifacts(archive, effectivePomResolver, filter);
         return this;
     }
 
+    @Override
+    public MavenEnvironment getMavenEnvironment() {
+        if (!(effectivePomResolver instanceof MavenEnvironmentRetrieval)) {
+            throw new UnsupportedOperationException(
+                    "Incompatible instance of EffectivePomDependencyResolver, unable to get MavenEnvironment object");
+        }
+
+        return ((MavenEnvironmentRetrieval) effectivePomResolver).getMavenEnvironment();
+    }
 }
