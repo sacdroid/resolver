@@ -16,30 +16,42 @@
  */
 package org.jboss.shrinkwrap.resolver.impl.maven;
 
-import java.util.Set;
-import java.util.Stack;
-
-import org.jboss.shrinkwrap.resolver.api.maven.MavenDependency;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenDependencyResolver;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenRepositoryBuilder;
 
 /**
- * Internal SPI to expose out required elements of the {@link MavenBuilderImpl} to inner classes for use as delegate methods
  *
- * @author <a href="mailto:alr@jboss.org">Andrew Lee Rubinger</a>
+ * @author <a href="kpiwko@redhat.com">Karel Piwko</a>
+ *
  */
-interface MavenDependencyResolverInternal extends MavenDependencyResolver {
+class MavenRepositoryBuilderImpl implements MavenRepositoryBuilder, MavenEnvironmentRetrieval {
 
-    /**
-     * Gets all the dependencies marked by Resolver to be resolved
-     *
-     * @return the stack which represents content of MavenDependencyResolver
-     */
-    Stack<MavenDependency> getDependencies();
+    private MavenEnvironment maven;
 
-    /**
-     * Gets all the dependencies retrieved from metadata parsing.
-     *
-     * @return the set which represents content of {@link MavenDependencyResolver} version metadata
-     */
-    Set<MavenDependency> getVersionManagement();
+    public MavenRepositoryBuilderImpl(MavenEnvironment maven) {
+        this.maven = maven;
+    }
+
+    @Override
+    public MavenDependencyResolver up() {
+        return new MavenDependencyResolverImpl(maven);
+    }
+
+    @Override
+    public MavenRepositoryBuilder layout(String layout) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public MavenRepositoryBuilder repository(String url) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public MavenEnvironment getMavenEnvironment() {
+        return maven;
+    }
+
 }

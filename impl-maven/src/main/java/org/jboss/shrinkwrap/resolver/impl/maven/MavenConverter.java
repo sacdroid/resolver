@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.apache.maven.model.Repository;
 import org.jboss.shrinkwrap.resolver.api.ResolutionException;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenDependency;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenRepository;
 import org.jboss.shrinkwrap.resolver.impl.maven.util.StringUtil;
 import org.jboss.shrinkwrap.resolver.impl.maven.util.Validate;
 import org.sonatype.aether.artifact.Artifact;
@@ -146,7 +147,7 @@ class MavenConverter {
             }
 
             // safely convert MavenDependency to MavenDependencyImpl
-            MavenDependencyImpl resolved = MavenConverter.asDependency(internal.getCoordinates());
+            MavenDependencyImpl resolved = MavenConverter.asDependency(internal.coordinates());
             String version = resolved.getVersion();
             log.fine("Resolved version " + version + " from the POM file for the artifact: " + coordinates);
             dependency.setVersion(resolved.getVersion());
@@ -162,8 +163,8 @@ class MavenConverter {
      * @return the corresponding Aether dependency
      */
     public static Dependency asDependency(MavenDependency dependency) {
-        return new Dependency(asArtifact(dependency.getCoordinates()), dependency.getScope(), dependency.isOptional(),
-                asExclusions(Arrays.asList(dependency.getExclusions())));
+        return new Dependency(asArtifact(dependency.coordinates()), dependency.scope(), dependency.optional(),
+                asExclusions(Arrays.asList(dependency.exclusions())));
     }
 
     public static List<Dependency> asDependencies(List<MavenDependency> dependencies) {
@@ -302,9 +303,9 @@ class MavenConverter {
         result.setType(artifact.getExtension());
         result.setClassifier(artifact.getClassifier());
         result.setVersion(artifact.getVersion());
-        result.setOptional(dependency.isOptional());
-        result.setScope(dependency.getScope());
-        result.addExclusions(fromExclusions(dependency.getExclusions()).toArray(new String[0]));
+        result.optional(dependency.isOptional());
+        result.scope(dependency.getScope());
+        result.exclusions(fromExclusions(dependency.getExclusions()).toArray(new String[0]));
         return result;
     }
 
@@ -342,21 +343,21 @@ class MavenConverter {
         result.setType(artifact.getExtension());
         result.setClassifier(artifact.getClassifier());
         result.setVersion(artifact.getVersion());
-        result.setOptional(dependency.isOptional());
-        result.setScope(dependency.getScope());
-        result.addExclusions(exclusions.toArray(new String[0]));
+        result.optional(dependency.isOptional());
+        result.scope(dependency.getScope());
+        result.exclusions(exclusions.toArray(new String[0]));
         return result;
     }
 
-    public static Stack<MavenDependency> fromDependencies(Collection<org.apache.maven.model.Dependency> dependencies,
+    public static Set<MavenDependency> fromDependencies(Collection<org.apache.maven.model.Dependency> dependencies,
             ArtifactTypeRegistry registry) {
 
-        Stack<MavenDependency> stack = new Stack<MavenDependency>();
+        Set<MavenDependency> set = new LinkedHashSet<MavenDependency>();
         for (org.apache.maven.model.Dependency d : dependencies) {
-            stack.add(fromDependency(d, registry));
+            set.add(fromDependency(d, registry));
         }
 
-        return stack;
+        return set;
     }
 
     /**
@@ -382,6 +383,18 @@ class MavenConverter {
         return new RemoteRepository().setId(repository.getId()).setContentType(repository.getLayout())
                 .setUrl(repository.getUrl()).setPolicy(true, asRepositoryPolicy(repository.getSnapshots()))
                 .setPolicy(false, asRepositoryPolicy(repository.getReleases()));
+    }
+
+    /**
+     * Converts MavenRepository to Aether {@link RemoteRepository}
+     *
+     * @param repository the repository to be converted
+     * @return Equivalent remote repository
+     */
+    public static RemoteRepository asRemoteRepository(MavenRepository repository) {
+        // FIXME this does not allow user to set policies
+        // neither authentication
+        return new RemoteRepository().setId(repository.id()).setContentType(repository.layout()).setUrl(repository.url());
     }
 
     /**

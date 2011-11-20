@@ -33,7 +33,7 @@ public class DependencyResolvers {
      * @param clazz the class
      * @return The new instance of dependency builder backed by passed implementation
      */
-    public static <T extends DependencyBuilder<T>> T use(final Class<T> clazz) {
-        return DependencyBuilderInstantiator.createFromUserView(clazz);
+    public static <T extends ResolverEntryPoint<T>> T use(final Class<T> clazz) {
+        return ResolverEntryPointInstantiator.createFromUserView(clazz);
     }
 }
